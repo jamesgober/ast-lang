@@ -26,7 +26,7 @@
         <strong>MSRV is 1.85+</strong> (Rust 2024 edition).
     </p>
     <blockquote>
-        <strong>Status: pre-1.0, in active development.</strong> The public API is being designed across the 0.x series and frozen at <code>1.0.0</code>. See <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
+        <strong>Status: stable.</strong> The public API is frozen as of <code>1.0.0</code> and follows Semantic Versioning &mdash; no breaking changes before <code>2.0</code>. See <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
     </blockquote>
 </div>
 
@@ -37,14 +37,62 @@
 
 ```toml
 [dependencies]
-ast-lang = "0.1"
+ast-lang = "1"
+```
+
+<br>
+
+## Example
+
+A language brings its own node type; ast-lang carries the traversal.
+
+```rust
+use ast_lang::{transform, walk, Arena, Flow, Id, Node, Span, Visitor};
+
+#[derive(Clone)]
+enum Expr {
+    Lit(i64, Span),
+    Add(Id<Expr>, Id<Expr>, Span),
+}
+
+impl Node for Expr {
+    fn span(&self) -> Span {
+        match self {
+            Expr::Lit(_, s) | Expr::Add(_, _, s) => *s,
+        }
+    }
+    fn each_child(&self, f: &mut dyn FnMut(Id<Self>)) {
+        if let Expr::Add(a, b, _) = self {
+            f(*a);
+            f(*b);
+        }
+    }
+    fn map_children(&self, f: &mut dyn FnMut(Id<Self>) -> Id<Self>) -> Self {
+        match self {
+            Expr::Lit(v, s) => Expr::Lit(*v, *s),
+            Expr::Add(a, b, s) => Expr::Add(f(*a), f(*b), *s),
+        }
+    }
+}
+
+let mut arena = Arena::new();
+let one = arena.alloc(Expr::Lit(1, Span::new(0, 1)));
+let two = arena.alloc(Expr::Lit(2, Span::new(4, 5)));
+let add = arena.alloc(Expr::Add(one, two, Span::new(0, 5)));
+
+// Walk read-only; transform rebuilds into a fresh arena.
+let mut doubled = Arena::new();
+let _ = transform(&arena, add, &mut doubled, |node| match node {
+    Expr::Lit(v, s) => Expr::Lit(v * 2, s),
+    other => other,
+});
 ```
 
 <br>
 
 ## Status
 
-This is the <code>v0.1.0</code> scaffold: structure, tooling, and quality gates are in place; the implementation lands across the 0.x series per the <a href="./dev/ROADMAP.md"><code>ROADMAP</code></a> and <a href="./docs/API.md"><code>docs/API.md</code></a>.
+This is <code>v1.0.0</code>: the public API is stable and frozen under SemVer. The node trait and the iterative (stack-safe) <code>walk</code> / <code>transform</code> machinery are complete and catalogued in <a href="./docs/API.md"><code>docs/API.md</code></a>.
 
 <hr>
 <br>

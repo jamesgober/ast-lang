@@ -3,7 +3,7 @@
 # =============================================================================
 [package]
 name    = "ast-lang"
-version = "0.1.0"
+version = "1.0.0"
 
 # Minimum Supported Rust Version (MSRV)
 rust-version = "1.85"
@@ -19,10 +19,10 @@ readme = "README.md"
 description = "AST node traits with visitor/fold/transform machinery."
 
 # Keywords (5 max)
-keywords = [compiler,ast,language,visitor]
+keywords = ["compiler", "ast", "language", "visitor"]
 
 # Categories
-categories = [development-tools,parsing]
+categories = ["development-tools", "parsing"]
 
 # Links
 homepage      = "https://github.com/jamesgober/ast-lang"
@@ -45,15 +45,16 @@ path = "src/lib.rs"
 # #################################
 [features]
 default = ["std"]
-std = []
-# Serialization support.
-serde = ["dep:serde"]
+std = ["span-lang/std", "arena-lang/std"]
 
 
 # DEPENDENCIES
 # #################################
 [dependencies]
-serde = { version = "1", optional = true, default-features = false, features = ["derive", "alloc"] }
+# Source spans: every node reports the byte range of source it covers.
+span-lang = { version = "0.4", default-features = false }
+# Typed arena + stable `Id` handles: the storage a node tree is wired over.
+arena-lang = { version = "1", default-features = false }
 
 
 # DEV DEPENDENCIES

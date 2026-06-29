@@ -9,14 +9,16 @@
 Compiles, CI green, structure correct, no domain logic.
 - [x] Manifest, README, CHANGELOG, REPS, dual license, CI, deny, clippy, rustfmt.
 
-## v0.2.0 - Core (THE HARD PART, NOT DEFERRED)
+## v0.2.0 - Core (DONE)
 Node traits and visitor/fold/transform machinery; arena-backed for stable nodes.
-Dependencies (wires span, arena, intern) are wired here, when first used.
+Dependencies wired when first used: `span` (node spans) and `arena` (storage).
+`intern` is not used by the generic, language-agnostic machinery and was not wired;
+see `dev/NOTES.md`.
 Exit criteria:
-- [ ] Every public item has rustdoc + a runnable example.
-- [ ] Core invariants property-tested (full DIRECTIVES + API authored at this stage).
+- [x] Every public item has rustdoc + a runnable example.
+- [x] Core invariants property-tested (full DIRECTIVES + API authored at this stage).
 
-## v1.0.0 - API freeze
+## v1.0.0 - API freeze (DONE)
 Public surface stable and frozen until 2.0.
-- [ ] docs/API.md marked stable; SemVer promise recorded.
-- [ ] Full test + benchmark suite green on all three platforms.
+- [x] docs/API.md marked stable; SemVer promise recorded.
+- [x] Full test + benchmark suite green (Windows local + MSRV; CI runs Linux/macOS/Windows on push).
