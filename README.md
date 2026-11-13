@@ -18,7 +18,7 @@
 
 <div align="left">
     <p>
-        ast-lang is the MAIN-tier crate that follows: Node traits and visitor/fold/transform machinery; arena-backed for stable nodes. Part of the -lang language-construction family; see _strategy/LANG_COLLECTION.md for the master plan.
+        ast-lang is the MAIN-tier crate that follows: Node traits and visitor/fold/transform machinery; arena-backed for stable nodes. Part of the -lang language-construction family.
     </p>
     <br>
     <hr>
