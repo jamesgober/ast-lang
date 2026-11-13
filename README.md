@@ -92,7 +92,7 @@ let _ = transform(&arena, add, &mut doubled, |node| match node {
 
 ## Status
 
-This is <code>v1.0.0</code>: the public API is stable and frozen under SemVer. The node trait and the iterative (stack-safe) <code>walk</code> / <code>transform</code> machinery are complete and catalogued in <a href="./docs/API.md"><code>docs/API.md</code></a>.
+This is <code>v1.0.1</code>: the public API is stable and frozen under SemVer. The node trait and the iterative (stack-safe) <code>walk</code> / <code>transform</code> machinery are complete and catalogued in <a href="./docs/API.md"><code>docs/API.md</code></a>.
 
 <hr>
 <br>

@@ -21,6 +21,22 @@
 
 ---
 
+## [1.0.1] - 2026-11-12
+
+A documentation patch. No change to the library code or its behaviour.
+
+### Changed
+
+- **`walk` and `Visitor` document the tree assumption.** `walk` expects each node
+  to be reachable from the root by one path. The arena does not enforce that: a
+  shared child handle is visited once per path, and a handle back to an ancestor
+  (possible through `Arena::get_mut` back-patching) makes the walk loop forever.
+  The rustdoc and `docs/API.md` now say so and show the guard: keep a set of
+  entered handles in the visitor and return `Flow::SkipChildren` for a repeat. A
+  doc example and a unit test with a real cycle pin that pattern.
+
+---
+
 ## [1.0.0] - 2026-06-28
 
 API freeze. The node trait and traversal surface is stable and will not change in a
@@ -66,7 +82,8 @@ Initial scaffold and repository bootstrap. No domain logic yet &mdash; this rele
 - `.github/workflows/ci.yml` CI matrix; `deny.toml`, `clippy.toml`, `rustfmt.toml`.
 - `dev/DIRECTIVES.md` and `dev/ROADMAP.md` (committed engineering standards + plan).
 
-[Unreleased]: https://github.com/jamesgober/ast-lang/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/jamesgober/ast-lang/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/jamesgober/ast-lang/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/jamesgober/ast-lang/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/jamesgober/ast-lang/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jamesgober/ast-lang/releases/tag/v0.1.0

@@ -46,6 +46,11 @@ pub enum Flow {
 /// way down and returns a [`Flow`] to steer the walk; `leave` runs on the way back
 /// up, after the node's children have been fully visited.
 ///
+/// [`walk`] assumes the nodes reachable from the root form a tree. If handles are
+/// shared or form a cycle, the visitor sees a node once per path to it, or forever;
+/// see [Shared and cyclic handles](walk#shared-and-cyclic-handles) for how to guard
+/// against that.
+///
 /// # Examples
 ///
 /// A visitor that sums the integer literals in an expression tree.
@@ -136,6 +141,58 @@ enum Step<N> {
 ///
 /// A handle that names no live node in `arena` — including a `root` that is out of
 /// range — is silently skipped, so a stale handle is a no-op, never a panic.
+///
+/// # Shared and cyclic handles
+///
+/// `walk` assumes the nodes reachable from `root` form a **tree**: each node is
+/// reachable by exactly one path. The arena does not enforce that. A pass that
+/// shares a child handle between two parents (common in desugaring) makes `walk`
+/// visit the shared subtree once per path to it, which grows exponentially with
+/// nested sharing. A node that holds the handle of one of its ancestors (possible
+/// through [`Arena::get_mut`] back-patching) makes `walk` loop forever, with a
+/// work stack that keeps growing.
+///
+/// If your nodes may be shared or cyclic, keep a set of the handles already
+/// entered in the visitor and return [`Flow::SkipChildren`] for a repeat. Each node
+/// is then entered once and the walk always ends. `Id` is `Ord` and `Hash`, so
+/// any set works:
+///
+/// ```
+/// use std::collections::BTreeSet;
+///
+/// use ast_lang::{walk, Arena, Flow, Id, Node, Span, Visitor};
+///
+/// # enum Expr { Lit(i64, Span), Add(Id<Expr>, Id<Expr>, Span) }
+/// # impl Node for Expr {
+/// #     fn span(&self) -> Span { match self { Expr::Lit(_, s) | Expr::Add(_, _, s) => *s } }
+/// #     fn each_child(&self, f: &mut dyn FnMut(Id<Self>)) { if let Expr::Add(a, b, _) = self { f(*a); f(*b) } }
+/// #     fn map_children(&self, f: &mut dyn FnMut(Id<Self>) -> Id<Self>) -> Self {
+/// #         match self { Expr::Lit(v, s) => Expr::Lit(*v, *s), Expr::Add(a, b, s) => Expr::Add(f(*a), f(*b), *s) }
+/// #     }
+/// # }
+/// struct CountOnce {
+///     seen: BTreeSet<Id<Expr>>,
+///     count: usize,
+/// }
+/// impl Visitor<Expr> for CountOnce {
+///     fn enter(&mut self, _: &Arena<Expr>, id: Id<Expr>, _: &Expr) -> Flow {
+///         if !self.seen.insert(id) {
+///             return Flow::SkipChildren; // already visited through another path
+///         }
+///         self.count += 1;
+///         Flow::Continue
+///     }
+/// }
+///
+/// let mut arena = Arena::new();
+/// let x = arena.alloc(Expr::Lit(1, Span::new(0, 1)));
+/// // `x + x`: both operands are the same handle.
+/// let add = arena.alloc(Expr::Add(x, x, Span::new(0, 5)));
+///
+/// let mut v = CountOnce { seen: BTreeSet::new(), count: 0 };
+/// walk(&arena, add, &mut v);
+/// assert_eq!(v.count, 2); // `add` and `x`, each once
+/// ```
 ///
 /// # Examples
 ///
@@ -257,6 +314,38 @@ mod tests {
         let b = arena.alloc(E::Leaf(2, Span::new(1, 2)));
         let root = arena.alloc(E::Pair(a, b, Span::new(0, 2)));
         (arena, root)
+    }
+
+    /// A visitor that enters each handle once, as the `walk` docs recommend for
+    /// shared or cyclic handles.
+    #[derive(Default)]
+    struct Once {
+        seen: alloc::collections::BTreeSet<Id<E>>,
+        entered: usize,
+    }
+    impl Visitor<E> for Once {
+        fn enter(&mut self, _: &Arena<E>, id: Id<E>, _: &E) -> Flow {
+            if !self.seen.insert(id) {
+                return Flow::SkipChildren;
+            }
+            self.entered += 1;
+            Flow::Continue
+        }
+    }
+
+    #[test]
+    fn test_seen_set_ends_a_walk_over_a_cycle() {
+        let mut arena = Arena::new();
+        let leaf = arena.alloc(E::Leaf(1, Span::new(0, 1)));
+        let inner = arena.alloc(E::Pair(leaf, leaf, Span::new(0, 1)));
+        let root = arena.alloc(E::Pair(inner, leaf, Span::new(0, 2)));
+        // Back-patch `inner` to point at its own parent, closing a cycle.
+        if let Some(node) = arena.get_mut(inner) {
+            *node = E::Pair(root, leaf, Span::new(0, 1));
+        }
+        let mut v = Once::default();
+        walk(&arena, root, &mut v);
+        assert_eq!(v.entered, 3);
     }
 
     #[test]
