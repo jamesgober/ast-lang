@@ -131,6 +131,14 @@ children and left after them; children are visited in `each_child` order. A hand
 that names no live node (including an out-of-range `root`) is skipped, never a
 panic.
 
+`walk` assumes the nodes reachable from `root` form a tree, with one path to each
+node. The arena does not enforce that. A child handle shared between two parents is
+visited once per path to it (exponential with nested sharing), and a node that holds
+the handle of an ancestor, which `Arena::get_mut` back-patching allows, makes the
+walk loop forever. If your nodes may be shared or cyclic, keep a set of entered
+handles in the visitor and return `Flow::SkipChildren` for a repeat; `Id` is `Ord`
+and `Hash`, so any set works, and each node is then entered exactly once.
+
 ---
 
 ## `transform`
